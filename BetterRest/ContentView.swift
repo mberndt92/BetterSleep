@@ -12,7 +12,7 @@ struct ContentView: View {
     
     @State private var wakeUp = ContentView.defaultWakeTime
     @State private var sleepAmount = 8.0
-    @State private var coffeeAmount = 3
+    @State private var coffeeAmount = 2
     
     @State private var alertTitle = ""
     @State private var alertMessage = ""
@@ -47,31 +47,28 @@ struct ContentView: View {
                 } header: {
                     Text("Desired amount of sleep")
                 }
-
                 Section {
-                    Stepper(
-                        "^[\(coffeeAmount) cup](inflect: true)",
-                        value: $coffeeAmount,
-                        in: 1...20
-                    )
+                    Picker("^[\(coffeeAmount + 1) cup](inflect: true)", selection: $coffeeAmount) {
+                        ForEach(1..<21) {
+                            Text("\($0)")
+                        }
+                    }
                 } header: {
                     Text("Daily coffee intake")
                 }
+                Section {
+                    Text("\(calculateBedtime().formatted(date: .omitted, time: .shortened))")
+                        .font(.headline)
+                } header: {
+                    Text("Recommended Bedtime")
+                }
             }
             .navigationTitle("BetterRest")
-            .toolbar {
-                Button("Calculate", action: calculateBedtime)
-            }
-            .alert(alertTitle, isPresented: $showingAlert) {
-                Button("OK") { }
-            } message: {
-                Text(alertMessage)
-            }
         }
         .padding()
     }
     
-    private func calculateBedtime() {
+    private func calculateBedtime() -> Date {
         do {
             let config = MLModelConfiguration()
             let model = try SleepCalculator(configuration: config)
@@ -86,16 +83,13 @@ struct ContentView: View {
                 coffee: Double(coffeeAmount)
             )
             let sleepTime = wakeUp - prediction.actualSleep
-            alertTitle = "Your ideal bedtime is"
-            alertMessage = sleepTime.formatted(
-                date: .omitted,
-                time: .shortened
-            )
+            return sleepTime
         } catch {
             alertTitle = "Error"
             alertMessage = "Sorry, there was a problem calculating your bedtime."
+            showingAlert = true
         }
-        showingAlert = true
+        return Date.now
     }
 }
 
